@@ -16,7 +16,7 @@ client = discord.Client(intents=intents)
 
 last_status = None
 downtime_start = None
-session = None  # persistent session
+session = None
 
 async def send_and_publish(channel, text):
     """Send a message and publish if it's an announcement/news channel."""
@@ -43,7 +43,7 @@ async def check_server():
         return
 
     try:
-        async with session.get(CHECK_URL, timeout=5) as resp:
+        async with session.get(CHECK_URL, timeout=15) as resp:
             is_up = (resp.status == EXPECTED_STATUS)
             print(f"[Ping] Server returned {resp.status} — {'UP' if is_up else 'DOWN'}")
 
@@ -53,7 +53,6 @@ async def check_server():
             if last_status is None:
                 last_status = is_up
             elif is_up != last_status:
-                # ✅ update right away so it only triggers once
                 last_status = is_up  
 
                 if is_up:
@@ -63,9 +62,6 @@ async def check_server():
                         downtime_minutes = int(downtime_duration.total_seconds() / 60)
 
                         await send_and_publish(channel, f"✅ Super Mechs is back ONLINE! Downtime was approximately {downtime_minutes} minutes.")
-
-                        # optional logging function, make sure it's defined
-                        # log_downtime_to_excel(downtime_start, downtime_end, downtime_minutes)
 
                         downtime_start = None
                     else:
@@ -93,7 +89,7 @@ async def check_server():
 async def on_ready():
     global session
     print(f"✅ Logged in as {client.user}")
-    session = aiohttp.ClientSession()  # create once
+    session = aiohttp.ClientSession()
     check_server.start()
 
 @client.event
