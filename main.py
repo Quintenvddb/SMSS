@@ -9,7 +9,7 @@ TOKEN = os.getenv("TOKEN")
 CHANNEL_ID = 1405889445382721557
 CHECK_URL = "https://www.supermechs.com/"
 EXPECTED_STATUS = 200
-CHECK_INTERVAL = 30
+CHECK_INTERVAL = 60
 
 intents = discord.Intents.default()
 client = discord.Client(intents=intents)
@@ -43,7 +43,7 @@ async def check_server():
         return
 
     try:
-        async with session.get(CHECK_URL, timeout=20) as resp:
+        async with session.get(CHECK_URL, timeout=45) as resp:
             is_up = (resp.status == EXPECTED_STATUS)
             print(f"[Ping] Server returned {resp.status} — {'UP' if is_up else 'DOWN'}")
 
