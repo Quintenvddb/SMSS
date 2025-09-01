@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 
 TOKEN = os.getenv("TOKEN")
 CHANNEL_ID = 1405889445382721557
+ROLE_ID = 1412140353506639953
 CHECK_URL = "https://www.supermechs.com/"
 EXPECTED_STATUS = 200
 CHECK_INTERVAL = 60
@@ -18,8 +19,14 @@ last_status = None
 downtime_start = None
 session = None
 
-async def send_and_publish(channel, text):
-    """Send a message and publish if it's an announcement/news channel."""
+async def send_and_publish(channel, text, mention_role=False):
+    if mention_role:
+        role = channel.guild.get_role(ROLE_ID)
+        if role:
+            text = f"{role.mention} {text}"
+        else:
+            print(f"❌ Could not find role with ID {ROLE_ID}")
+
     message = await channel.send(text)
     if channel.type.name == "news":
         try:
@@ -61,13 +68,13 @@ async def check_server():
                         downtime_duration = downtime_end - downtime_start
                         downtime_minutes = int(downtime_duration.total_seconds() / 60)
 
-                        await send_and_publish(channel, f"✅ Super Mechs is back ONLINE! Downtime was approximately {downtime_minutes} minutes.")
+                        await send_and_publish(channel, f"✅ Super Mechs is back ONLINE! Downtime was approximately {downtime_minutes} minutes.", mention_role=True)
 
                         downtime_start = None
                     else:
                         await send_and_publish(channel, "✅ Super Mechs is back ONLINE!")
                 else:
-                    await send_and_publish(channel, f"⚠️ Super Mechs might be DOWN! Got status code: {resp.status}")
+                    await send_and_publish(channel, f"⚠️ Super Mechs might be DOWN! Got status code: {resp.status}", mention_role=True)
                     downtime_start = datetime.now(timezone.utc)
 
     except asyncio.TimeoutError:
