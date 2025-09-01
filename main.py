@@ -43,7 +43,7 @@ async def check_server():
         return
 
     try:
-        async with session.get(CHECK_URL, timeout=15) as resp:
+        async with session.get(CHECK_URL, timeout=20) as resp:
             is_up = (resp.status == EXPECTED_STATUS)
             print(f"[Ping] Server returned {resp.status} — {'UP' if is_up else 'DOWN'}")
 
