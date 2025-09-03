@@ -10,7 +10,7 @@ CHANNEL_ID = 1405889445382721557
 ROLE_ID = 1412140353506639953
 CHECK_URL = "https://www.supermechs.com/"
 EXPECTED_STATUS = 200
-CHECK_INTERVAL = 60
+CHECK_INTERVAL = 20
 
 intents = discord.Intents.default()
 client = discord.Client(intents=intents)
@@ -18,6 +18,7 @@ client = discord.Client(intents=intents)
 last_status = None
 downtime_start = None
 session = None
+consecutive_failures = 0
 
 async def send_and_publish(channel, text, mention_role=False):
     if mention_role:
@@ -39,7 +40,7 @@ async def send_and_publish(channel, text, mention_role=False):
 
 @tasks.loop(seconds=CHECK_INTERVAL)
 async def check_server():
-    global last_status, downtime_start, session
+    global last_status, downtime_start, session, consecutive_failures
     try:
         channel = await client.fetch_channel(CHANNEL_ID)
     except discord.Forbidden:
@@ -50,47 +51,62 @@ async def check_server():
         return
 
     try:
-        async with session.get(CHECK_URL, timeout=45) as resp:
+        async with session.get(CHECK_URL, timeout=15) as resp:
             is_up = (resp.status == EXPECTED_STATUS)
             print(f"[Ping] Server returned {resp.status} — {'UP' if is_up else 'DOWN'}")
 
-            if not is_up and downtime_start is None:
-                downtime_start = datetime.now(timezone.utc)
+            if is_up:
+                if last_status is False:
+                    downtime_end = datetime.now(timezone.utc)
+                    downtime_duration = downtime_end - downtime_start if downtime_start else None
+                    downtime_minutes = int(downtime_duration.total_seconds() / 60) if downtime_duration else 0
 
-            if last_status is None:
-                last_status = is_up
-            elif is_up != last_status:
-                last_status = is_up  
+                    await send_and_publish(
+                        channel,
+                        f"✅ Super Mechs is back ONLINE! Downtime was approximately {downtime_minutes} minutes.",
+                        mention_role=True
+                    )
 
-                if is_up:
-                    if downtime_start:
-                        downtime_end = datetime.now(timezone.utc)
-                        downtime_duration = downtime_end - downtime_start
-                        downtime_minutes = int(downtime_duration.total_seconds() / 60)
+                consecutive_failures = 0
+                downtime_start = None
+                last_status = True
 
-                        await send_and_publish(channel, f"✅ Super Mechs is back ONLINE! Downtime was approximately {downtime_minutes} minutes.", mention_role=True)
+            else:
+                consecutive_failures += 1
+                print(f"[Ping] Failure count: {consecutive_failures}")
 
-                        downtime_start = None
-                    else:
-                        await send_and_publish(channel, "✅ Super Mechs is back ONLINE!")
-                else:
-                    await send_and_publish(channel, f"⚠️ Super Mechs might be DOWN! Got status code: {resp.status}", mention_role=True)
+                if consecutive_failures == 1 and downtime_start is None:
                     downtime_start = datetime.now(timezone.utc)
+
+                if consecutive_failures == 3:
+                    await send_and_publish(
+                        channel,
+                        f"⚠️ Super Mechs appears to be DOWN (confirmed after 3 checks).",
+                        mention_role=True
+                    )
+                    last_status = False
 
     except asyncio.TimeoutError:
         print("[Ping] Server timed out")
-        if last_status is not False:
+        consecutive_failures += 1
+
+        if consecutive_failures == 1 and downtime_start is None:
+            downtime_start = datetime.now(timezone.utc)
+
+        if consecutive_failures == 3:
+            await send_and_publish(channel, "⚠️ Super Mechs is DOWN (3 consecutive timeouts).", mention_role=True)
             last_status = False
-            await send_and_publish(channel, "⚠️ Super Mechs timed out, possible downtime.")
-            if downtime_start is None:
-                downtime_start = datetime.now(timezone.utc)
+
     except Exception as e:
         print(f"[Ping] Error checking server: {e}")
-        if last_status is not False:
+        consecutive_failures += 1
+
+        if consecutive_failures == 1 and downtime_start is None:
+            downtime_start = datetime.now(timezone.utc)
+
+        if consecutive_failures == 3:
+            await send_and_publish(channel, f"❌ Error checking Super Mechs (3 times): {e}", mention_role=True)
             last_status = False
-            await send_and_publish(channel, f"❌ Error checking Super Mechs: {e}")
-            if downtime_start is None:
-                downtime_start = datetime.now(timezone.utc)
 
 @client.event
 async def on_ready():
