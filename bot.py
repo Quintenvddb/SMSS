@@ -4,6 +4,9 @@ import asyncio
 import os
 from discord.ext import tasks
 from datetime import datetime, timezone
+from dotenv import load_dotenv
+
+load_dotenv()
 
 TOKEN = os.getenv("TOKEN")
 CHANNEL_ID = int(os.getenv("CHANNEL_ID", 0))
