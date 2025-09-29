@@ -6,11 +6,11 @@ from discord.ext import tasks
 from datetime import datetime, timezone
 
 TOKEN = os.getenv("TOKEN")
-CHANNEL_ID = 1405889445382721557
-ROLE_ID = 1412140353506639953
-CHECK_URL = "https://www.supermechs.com/"
-EXPECTED_STATUS = 200
-CHECK_INTERVAL = 20
+CHANNEL_ID = int(os.getenv("CHANNEL_ID", 0))
+ROLE_ID = int(os.getenv("ROLE_ID", 0))
+CHECK_URL = os.getenv("CHECK_URL", "https://www.supermechs.com/")
+EXPECTED_STATUS = int(os.getenv("EXPECTED_STATUS", 200))
+CHECK_INTERVAL = int(os.getenv("CHECK_INTERVAL", 20))
 
 intents = discord.Intents.default()
 client = discord.Client(intents=intents)
