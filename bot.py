@@ -59,6 +59,13 @@ async def check_server():
             print(f"[Ping] Server returned {resp.status} — {'UP' if is_up else 'DOWN'}")
 
             if is_up:
+                await client.change_presence(
+                    activity=discord.Activity(
+                        type=discord.ActivityType.watching,
+                        name="Super Mechs: 🟩 Online"
+                    )
+                )
+
                 if last_status is False:
                     downtime_end = datetime.now(timezone.utc)
                     downtime_duration = downtime_end - downtime_start if downtime_start else None
@@ -80,6 +87,16 @@ async def check_server():
 
                 if consecutive_failures == 1 and downtime_start is None:
                     downtime_start = datetime.now(timezone.utc)
+                if downtime_start:
+                    elapsed = datetime.now(timezone.utc) - downtime_start
+                    minutes, seconds = divmod(int(elapsed.total_seconds()), 60)
+                    downtime_text = f"Super Mechs: 🟥 Down for {minutes}m {seconds}s"
+                    await client.change_presence(
+                        activity=discord.Activity(
+                            type=discord.ActivityType.watching,
+                            name=downtime_text
+                        )
+                    )
 
                 if consecutive_failures == 3:
                     await send_and_publish(
@@ -95,6 +112,16 @@ async def check_server():
 
         if consecutive_failures == 1 and downtime_start is None:
             downtime_start = datetime.now(timezone.utc)
+        if downtime_start:
+            elapsed = datetime.now(timezone.utc) - downtime_start
+            minutes, seconds = divmod(int(elapsed.total_seconds()), 60)
+            downtime_text = f"Super Mechs: 🟥 Down for {minutes}m {seconds}s"
+            await client.change_presence(
+                activity=discord.Activity(
+                    type=discord.ActivityType.watching,
+                    name=downtime_text
+                )
+            )
 
         if consecutive_failures == 3:
             await send_and_publish(channel, "⚠️ Super Mechs is DOWN (3 consecutive timeouts).", mention_role=True)
@@ -106,6 +133,16 @@ async def check_server():
 
         if consecutive_failures == 1 and downtime_start is None:
             downtime_start = datetime.now(timezone.utc)
+        if downtime_start:
+            elapsed = datetime.now(timezone.utc) - downtime_start
+            minutes, seconds = divmod(int(elapsed.total_seconds()), 60)
+            downtime_text = f"Super Mechs: 🟥 Down for {minutes}m {seconds}s"
+            await client.change_presence(
+                activity=discord.Activity(
+                    type=discord.ActivityType.watching,
+                    name=downtime_text
+                )
+            )
 
         if consecutive_failures == 3:
             await send_and_publish(channel, f"❌ Error checking Super Mechs (3 times): {e}", mention_role=True)
@@ -116,6 +153,12 @@ async def on_ready():
     global session
     print(f"✅ Logged in as {client.user}")
     session = aiohttp.ClientSession()
+    await client.change_presence(
+        activity=discord.Activity(
+            type=discord.ActivityType.watching,
+            name="Super Mechs: Checking status..."
+        )
+    )
     check_server.start()
 
 @client.event
